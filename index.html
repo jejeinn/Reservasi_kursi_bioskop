@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Reservasi Kursi Bioskop - Sederhana</title>
+  <style>
+    body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:24px;background:#f7f7fb;color:#222}
+    h1{margin-bottom:8px}
+    .screen{width:80%;max-width:700px;margin:12px auto 24px;background:linear-gradient(#e6eefc,#d7e9ff);padding:10px;border-radius:6px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.08)}
+    .theater{display:grid;grid-template-columns:repeat(10,40px);gap:8px;justify-content:center;align-items:center;margin:0 auto;max-width:900px}
+    .seat{width:40px;height:40px;border-radius:6px;background:#e0e6ef;display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none}
+    .seat.available:hover{transform:translateY(-3px);box-shadow:0 6px 12px rgba(0,0,0,.08)}
+    .seat.selected{background:#6aa84f;color:white}
+    .seat.booked{background:#d9534f;color:white;cursor:not-allowed;opacity:.95}
+    .legend{display:flex;gap:12px;justify-content:center;margin:14px 0}
+    .legend span{display:flex;gap:6px;align-items:center}
+    .info{max-width:900px;margin:16px auto;padding:12px;background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+    button{padding:10px 14px;border-radius:6px;border:0;background:#0b5ed7;color:white;cursor:pointer}
+    button:disabled{opacity:.5;cursor:not-allowed}
+    .row-label{grid-column:1/-1;text-align:left;font-weight:600;margin-top:6px}
+    @media (max-width:520px){.theater{grid-template-columns:repeat(5,40px);}}
+  </style>
+</head>
+<body>
+  <h1>Reservasi Kursi Bioskop (Sederhana)</h1>
+  <div class="screen">Layar</div>
+
+  <div class="legend">
+    <span><div style="width:18px;height:18px;border-radius:4px;background:#e0e6ef"></div> Tersedia</span>
+    <span><div style="width:18px;height:18px;border-radius:4px;background:#6aa84f"></div> Dipilih</span>
+    <span><div style="width:18px;height:18px;border-radius:4px;background:#d9534f"></div> Terpesan</span>
+  </div>
+
+  <div id="theater" class="theater" aria-label="Denah kursi bioskop"></div>
+
+  <div class="info">
+    <div>Harga per kursi: <strong id="price">Rp 35.000</strong></div>
+    <div style="margin-top:8px">Kursi terpilih: <span id="selectedList">-</span></div>
+    <div style="margin-top:8px">Total: <strong id="total">Rp 0</strong></div>
+    <div style="margin-top:12px">
+      <button id="reserveBtn" disabled>Pesan</button>
+      <button id="resetBtn" style="margin-left:8px;background:#6c757d">Reset</button>
+    </div>
+  </div>
+
+  <script>
+    // Konfigurasi teater sederhana
+    const rows = 6; // baris
+    const cols = 10; // kolom
+    const seatPrice = 35000;
+
+    // Contoh kursi yang sudah dipesan (mock data)
+    const preBooked = new Set(['A3','A4','B7','C1','D10']);
+
+    const theater = document.getElementById('theater');
+    const selectedListEl = document.getElementById('selectedList');
+    const totalEl = document.getElementById('total');
+    const reserveBtn = document.getElementById('reserveBtn');
+    const resetBtn = document.getElementById('resetBtn');
+
+    const selected = new Set();
+
+    // Membuat denah kursi
+    const rowLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    for(let r=0;r<rows;r++){
+      for(let c=1;c<=cols;c++){
+        const id = rowLetters[r]+c;
+        const div = document.createElement('div');
+        div.className = 'seat available';
+        div.dataset.id = id;
+        div.tabIndex = 0;
+        div.textContent = c;
+        div.setAttribute('aria-label', 'Kursi '+id);
+
+        if(preBooked.has(id)){
+          div.classList.remove('available');
+          div.classList.add('booked');
+        } else {
+          div.addEventListener('click', () => toggleSelect(div));
+          div.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' ') toggleSelect(div); });
+        }
+
+        theater.appendChild(div);
+      }
+      // label baris (opsional di bawah tiap baris)
+      const label = document.createElement('div');
+      label.className = 'row-label';
+      label.textContent = 'Baris ' + rowLetters[r];
+      theater.appendChild(label);
+    }
+
+    function toggleSelect(el){
+      const id = el.dataset.id;
+      if(el.classList.contains('booked')) return;
+      if(el.classList.contains('selected')){
+        el.classList.remove('selected');
+        selected.delete(id);
+      } else {
+        el.classList.add('selected');
+        selected.add(id);
+      }
+      updateInfo();
+    }
+
+    function updateInfo(){
+      if(selected.size===0){
+        selectedListEl.textContent = '-';
+        reserveBtn.disabled = true;
+        totalEl.textContent = 'Rp 0';
+      } else {
+        selectedListEl.textContent = Array.from(selected).join(', ');
+        const total = selected.size * seatPrice;
+        totalEl.textContent = formatRupiah(total);
+        reserveBtn.disabled = false;
+      }
+    }
+
+    reserveBtn.addEventListener('click', ()=>{
+      // Sederhana: langsung tandai kursi sebagai terpesan
+      selected.forEach(id=>{
+        const el = document.querySelector([data-id='${id}']);
+        if(el){
+          el.classList.remove('selected','available');
+          el.classList.add('booked');
+          // hapus event listener supaya tidak bisa dipilih lagi
+          el.replaceWith(el.cloneNode(true));
+        }
+      });
+      // clear selected set
+      selected.clear();
+      updateInfo();
+      alert('Kursi berhasil dipesan!');
+    });
+
+    resetBtn.addEventListener('click', ()=>{
+      // Reset pilihan (tidak membatalkan kursi yang sudah terpesan)
+      document.querySelectorAll('.seat.selected').forEach(el=>el.classList.remove('selected'));
+      selected.clear();
+      updateInfo();
+    });
+
+    function formatRupiah(n){
+      return 'Rp ' + n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+    }
+
+    // Inisialisasi tampilan harga
+    document.getElementById('price').textContent = formatRupiah(seatPrice);
+    updateInfo();
+  </script>
+</body>
+</html>
