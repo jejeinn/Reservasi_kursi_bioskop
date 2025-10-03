@@ -119,7 +119,7 @@
     reserveBtn.addEventListener('click', ()=>{
       // Sederhana: langsung tandai kursi sebagai terpesan
       selected.forEach(id=>{
-        const el = document.querySelector([data-id='${id}']);
+        const el = document.querySelector(`[data-id='${id}']`);
         if(el){
           el.classList.remove('selected','available');
           el.classList.add('booked');
